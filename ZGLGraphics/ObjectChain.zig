@@ -1,5 +1,8 @@
-pub fn ObjChain(comptime T: type, comptime LENGTH: u32) type {
+pub fn ObjChain(comptime _T: type, comptime _LENGTH: u32) type {
     return struct {
+        pub const T = _T;
+        pub const LENGTH = _LENGTH;
+
         pub const __signature__object_chain__ = true;
         current: usize = 0,
         array: [LENGTH]T,
@@ -50,16 +53,13 @@ pub fn CreateChain(comptime T: type) ObjChain(T, 0) {
     };
 }
 
-pub fn ResolveObjectChain(comptime obj_chain: anytype, _T: ?type) type {
-    const ObjectChain = @TypeOf(obj_chain);
-    if (!@hasDecl(ObjectChain, "__signature__object_chain__")) {
+pub fn EnforceObjectChain(comptime chain_type: type, comptime _T: ?type) void {
+    if (!@hasDecl(chain_type, "__signature__object_chain__")) {
         @compileError("OBJECT_CHAIN :: Given type is not Object Chain!");
     }
 
-    const T = ObjectChain.T;
+    const T = chain_type.T;
     if (_T) |_type| {
         if (T != _type) @compileError("OBJECT_CHAIN :: Given ObjectChain's type is not the requested type!");
     }
-    const LENGTH = ObjectChain.LENGTH;
-    return ObjChain(if (_T) _T.? else T, LENGTH);
 }

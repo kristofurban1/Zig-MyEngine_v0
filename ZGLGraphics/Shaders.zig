@@ -26,6 +26,7 @@ fn verify_shader(shader_id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: 
     var infoLog: [(log_len + 2):0]u8 = undefined;
     const infoLog_ptr: [*c]u8 = &infoLog;
     _g.glGetShaderiv(shader_id, ShaderVerifyInqury[@intFromEnum(inqury)].code, &success);
+    // TODO: Set infolog length in zig to sentinel terminated length
     if (success != 0) {
         try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name });
     } else {
@@ -94,7 +95,7 @@ pub const ShaderProgram = struct {
 
         pub fn delete_shader(self: @This(), shader: Shader) void {
             _ = self;
-            _g.glDeleteShader(shader.shader_id);
+            _g.glDeleteShader(shader.id.?);
         }
 
         pub fn finish(self: @This()) ShaderProgram {
@@ -113,18 +114,17 @@ pub const ShaderProgram = struct {
         } };
     }
 
-    pub fn deinit(self: *@This()) void {
+    pub fn deinit(self: @This()) void {
         _g.glDeleteProgram(self.shader_program);
     }
 };
 
-pub fn ShaderProgramCreator(comptime shader_chain: anytype) type {
-    const _ShaderChain = ObjectChain.ResolveObjectChain(shader_chain, Shader);
-    const ShaderChain = ObjectChain.ObjChain(Shader, _ShaderChain.T);
-    const _shader_chain: ShaderChain = shader_chain;
+pub fn ShaderProgramCompiler(comptime T: type) type {
+    ObjectChain.EnforceObjectChain(T, Shader);
     return struct {
-        pub fn compile_shader(label: []const u8) !ShaderProgram {
+        pub fn compile_shader(shader_chain: T, label: []const u8) !ShaderProgram {
             const builder = ShaderProgram.init(label);
+            var _shader_chain = shader_chain;
 
             _shader_chain.reset();
             while (_shader_chain.next_ref()) |shader_ref| {
@@ -150,20 +150,26 @@ var managed_shaders: std.ArrayList(ShaderProgram) = undefined;
 pub fn init(_allocator: std.mem.Allocator) !void {
     if (allocator) |_| unreachable;
     allocator = _allocator;
-    if (!allocator) |_|  unreachable;
+    if (allocator == null) unreachable;
 
     managed_shaders = try std.ArrayList(ShaderProgram).initCapacity(allocator.?, 0);
 }
 
 /// Managed shaders are kept until Shaders.deinit, so the lifetime of the application. Do not deinit managed shaders!
-fn manage_shader(shader_program: ShaderProgram) !u32 {
-    if (!allocator) unreachable;
+pub fn manage_shader(shader_program: ShaderProgram) !u64 {
+    if (allocator == null) unreachable;
     try managed_shaders.append(allocator.?, shader_program);
     return managed_shaders.items.len - 1;
 }
 
-pub fn deinit() void {
-    if (!allocator) unreachable;
+pub fn retrieve_shader(index: u64) !ShaderProgram {
+    if (allocator == null) unreachable;
+    if (index >= managed_shaders.items.len) unreachable; // Out of bounds
+    return managed_shaders.items[index];
+}
+
+pub fn deinit() !void {
+    if (allocator == null) unreachable;
 
     const shader_programs = try managed_shaders.toOwnedSlice(allocator.?);
     for (shader_programs) |shader_program| {
