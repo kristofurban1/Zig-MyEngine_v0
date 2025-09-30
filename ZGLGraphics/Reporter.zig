@@ -57,7 +57,9 @@ pub fn report(level: ReportLevels, comptime fmt: []const u8, args: anytype) !voi
 }
 
 pub fn set_immidiate_callback(comptime callback: ?*const fn (Report) void) void {
-    immidiate_callback.callback = callback;
+    _ = callback;
+    return;
+    //immidiate_callback.callback = callback;
 }
 
 /// Returns a raw slice of reports. The slice and each slice value must be freed!

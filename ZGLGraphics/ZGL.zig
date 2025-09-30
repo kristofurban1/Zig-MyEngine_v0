@@ -1,11 +1,11 @@
 const std = @import("std");
 const _g = @import("_glfw_glad_.zig").import;
 
-const C_STR = [:0]const u8; 
-
+const C_STR = [:0]const u8;
 
 pub const Reporter = @import("Reporter.zig");
 pub const Shaders = @import("Shaders.zig");
+pub const ObjectChain = @import("ObjectChain.zig");
 
 fn glfw_error_callback(error_code: c_int, description: [*c]const u8) callconv(.c) void {
     std.debug.print("GLFW ERROR {d}: {s}\n", .{ error_code, description });
@@ -18,7 +18,7 @@ pub fn _test() !void {
         std.debug.print("GLFW INITIALIZATION FAILURE\n", .{});
         return error.GLFW_INIT_FAIL;
     }
- 
+
     _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MAJOR, 3);
     _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MINOR, 3);
     _g.glfwWindowHint(_g.GLFW_OPENGL_PROFILE, _g.GLFW_OPENGL_CORE_PROFILE);

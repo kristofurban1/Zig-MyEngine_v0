@@ -4,6 +4,7 @@ const ZGL = @import("ZGL.zig");
 
 const _g = @import("_glfw_glad_.zig").import;
 const Reporter = ZGL.Reporter;
+const ObjectChain = ZGL.ObjectChain;
 
 const NamedTypeCode = struct {
     code: u32,
@@ -22,12 +23,13 @@ const ShaderVerifyInqury = [_]NamedTypeCode{
 fn verify_shader(shader_id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: []const u8) !void {
     var success: i32 = undefined;
     const log_len = 510;
-    const infoLog: [(log_len + 2):0]u8 = undefined;
+    var infoLog: [(log_len + 2):0]u8 = undefined;
+    const infoLog_ptr: [*c]u8 = &infoLog;
     _g.glGetShaderiv(shader_id, ShaderVerifyInqury[@intFromEnum(inqury)].code, &success);
     if (success != 0) {
         try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name });
     } else {
-        _g.glGetShaderInfoLog(shader_id, log_len, null, &infoLog);
+        _g.glGetShaderInfoLog(shader_id, log_len, null, infoLog_ptr);
         try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name, infoLog });
         return error.ShaderVerificatonFailed;
     }
@@ -61,54 +63,90 @@ fn create_shader(shader_type: ShaderTypes, program: [:0]const u8) !u32 {
     return id;
 }
 
-pub const ShaderProgram = struct {
-    pub const Shader = struct {
-        shader_type: ShaderTypes,
-        shader_program: [:0]const u8,
-        next_in_chain: ?*const @This() = null,
+pub const Shader = struct {
+    type: ShaderTypes,
+    program: [:0]const u8,
+    /// Not user managed, saves an allocation during chain evaluation. Do not modify.
+    id: ?u32 = null,
+};
 
-        /// Not user managed, saves an allocation during chain evaluation. Do not modify.
-        shader_id: ?u32 = null,
+pub const ShaderProgram = struct {
+    const Builder = struct {
+        program: ShaderProgram,
+
+        pub fn attach_shader(self: @This(), shader: Shader) !u32 {
+            const shader_id = try create_shader(
+                shader.type,
+                shader.program,
+            );
+            _g.glAttachShader(self.program.shader_program, shader_id);
+            return shader_id;
+        }
+
+        pub fn link_program(self: @This()) !void {
+            _g.glLinkProgram(self.program.shader_program);
+            try verify_shader(
+                self.program.shader_program,
+                .GL_LINK_STATUS,
+                self.program.label,
+            );
+        }
+
+        pub fn finish(self: @This()) ShaderProgram {
+            return self.program;
+        }
     };
 
+    label: []const u8,
     shader_program: u32,
     is_compute: bool,
 
-    pub fn init(shader_chain: Shader, is_compute: bool, label: []const u8) !@This() {
-        const shader_program_id = _g.glCreateProgram();
-        var _shader: ?*const Shader = &shader_chain;
-        while (_shader) |shader| {
-            const shader_id = try create_shader(shader.*.shader_type, shader.*.shader_program);
-            _g.glAttachShader(shader_program_id, shader_id);
-            shader.*.shader_id = shader_id;
-            shader = shader.next_in_chain orelse null;
-        }
-
-        _g.glLinkProgram(shader_program_id);
-        _shader = &shader_chain;
-        while (_shader) |shader| {
-            _g.glDeleteShader(shader.*.shader_id);
-            shader = shader.next_in_chain orelse null;
-        }
-
-        try verify_shader(shader_program_id, .GL_LINK_STATUS, "SHADER_PROGRAM: " ++ label);
-
-        return .{
-            .shader_program = shader_program_id,
+    pub fn init(label: []const u8, is_compute: bool) Builder {
+        const shader_program = _g.glCreateProgram();
+        return Builder{ .program = .{
+            .label = label,
+            .shader_program = shader_program,
             .is_compute = is_compute,
-        };
+        } };
     }
+
+    // pub fn init(shader_chain: anytype, is_compute: bool, label: []const u8) !@This() {
+    //     const ShaderChain = ObjectChain.ResolveObjectChain(shader_chain);
+    //     var _shader_chain: ShaderChain = shader_chain;
+    //     _shader_chain.reset();
+    //     while (_shader_chain.next_ref()) |shader| {
+    //         shader.*.shader_id = shader_id;
+    //     }
+    //     _g.glLinkProgram(shader_program_id);
+    //
+    //     _shader_chain.reset();
+    //     while (_shader_chain.next_obj()) |shader| {
+    //         _g.glDeleteShader(shader.shader_id);
+    //     }
+    //
+    //     try verify_shader(shader_program_id, .GL_LINK_STATUS, "SHADER_PROGRAM: " ++ label);
+    //
+    //     return .{
+    //         .shader_program = shader_program_id,
+    //         .is_compute = is_compute,
+    //     };
+    // }
 
     pub fn deinit(self: *@This()) void {
         _g.glDeleteProgram(self.shader_program);
     }
 };
 
-pub fn create_render_shader(shader_chain: ShaderProgram.Shader, label: []const u8) !ShaderProgram {
+pub fn CreateProgram(shader_chain: anytype) type {
+    _ = shader_chain;
+    return struct {};
+}
+
+pub fn create_render_shader(shader_chain: anytype, label: []const u8) !ShaderProgram {
     return ShaderProgram.init(shader_chain, false, label);
 }
 
-pub fn create_compute_shader(shader_chain: ShaderProgram.Shader, label: []const u8) !ShaderProgram {
+pub fn create_compute_shader(shader_chain: anytype, label: []const u8) !ShaderProgram {
     return ShaderProgram.init(shader_chain, true, label);
 }
 
@@ -124,7 +162,7 @@ pub fn init(_allocator: std.mem.Allocator) !void {
 }
 
 /// Managed shaders are kept until Shaders.deinit, so the lifetime of the application. Do not deinit managed shaders!
-pub fn manage_shader(shader_program: ShaderProgram) !u32 {
+fn manage_shader(shader_program: ShaderProgram) !u32 {
     std.debug.assert(allocator != undefined);
     try managed_shaders.append(allocator, shader_program);
     return managed_shaders.items.len - 1;
