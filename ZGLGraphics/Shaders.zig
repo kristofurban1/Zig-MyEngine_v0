@@ -92,6 +92,11 @@ pub const ShaderProgram = struct {
             );
         }
 
+        pub fn delete_shader(self: @This(), shader: Shader) void {
+            _ = self;
+            _g.glDeleteShader(shader.shader_id);
+        }
+
         pub fn finish(self: @This()) ShaderProgram {
             return self.program;
         }
@@ -99,79 +104,68 @@ pub const ShaderProgram = struct {
 
     label: []const u8,
     shader_program: u32,
-    is_compute: bool,
 
-    pub fn init(label: []const u8, is_compute: bool) Builder {
+    pub fn init(label: []const u8) Builder {
         const shader_program = _g.glCreateProgram();
         return Builder{ .program = .{
             .label = label,
             .shader_program = shader_program,
-            .is_compute = is_compute,
         } };
     }
-
-    // pub fn init(shader_chain: anytype, is_compute: bool, label: []const u8) !@This() {
-    //     const ShaderChain = ObjectChain.ResolveObjectChain(shader_chain);
-    //     var _shader_chain: ShaderChain = shader_chain;
-    //     _shader_chain.reset();
-    //     while (_shader_chain.next_ref()) |shader| {
-    //         shader.*.shader_id = shader_id;
-    //     }
-    //     _g.glLinkProgram(shader_program_id);
-    //
-    //     _shader_chain.reset();
-    //     while (_shader_chain.next_obj()) |shader| {
-    //         _g.glDeleteShader(shader.shader_id);
-    //     }
-    //
-    //     try verify_shader(shader_program_id, .GL_LINK_STATUS, "SHADER_PROGRAM: " ++ label);
-    //
-    //     return .{
-    //         .shader_program = shader_program_id,
-    //         .is_compute = is_compute,
-    //     };
-    // }
 
     pub fn deinit(self: *@This()) void {
         _g.glDeleteProgram(self.shader_program);
     }
 };
 
-pub fn CreateProgram(shader_chain: anytype) type {
-    _ = shader_chain;
-    return struct {};
+pub fn ShaderProgramCreator(comptime shader_chain: anytype) type {
+    const _ShaderChain = ObjectChain.ResolveObjectChain(shader_chain, Shader);
+    const ShaderChain = ObjectChain.ObjChain(Shader, _ShaderChain.T);
+    const _shader_chain: ShaderChain = shader_chain;
+    return struct {
+        pub fn compile_shader(label: []const u8) !ShaderProgram {
+            const builder = ShaderProgram.init(label);
+
+            _shader_chain.reset();
+            while (_shader_chain.next_ref()) |shader_ref| {
+                const id = try builder.attach_shader(shader_ref.*);
+                shader_ref.*.id = id;
+            }
+
+            try builder.link_program();
+
+            _shader_chain.reset();
+            while (_shader_chain.next_obj()) |shader_obj| {
+                builder.delete_shader(shader_obj);
+            }
+
+            return builder.finish();
+        }
+    };
 }
 
-pub fn create_render_shader(shader_chain: anytype, label: []const u8) !ShaderProgram {
-    return ShaderProgram.init(shader_chain, false, label);
-}
-
-pub fn create_compute_shader(shader_chain: anytype, label: []const u8) !ShaderProgram {
-    return ShaderProgram.init(shader_chain, true, label);
-}
-
-var allocator: std.mem.Allocator = undefined;
+var allocator: ?std.mem.Allocator = null;
 var managed_shaders: std.ArrayList(ShaderProgram) = undefined;
 
 pub fn init(_allocator: std.mem.Allocator) !void {
-    std.debug.assert(allocator == undefined);
+    if (allocator) |_| unreachable;
     allocator = _allocator;
-    std.debug.assert(allocator != undefined);
+    if (!allocator) |_|  unreachable;
 
-    managed_shaders = try std.ArrayList(ShaderProgram).initCapacity(allocator, 0);
+    managed_shaders = try std.ArrayList(ShaderProgram).initCapacity(allocator.?, 0);
 }
 
 /// Managed shaders are kept until Shaders.deinit, so the lifetime of the application. Do not deinit managed shaders!
 fn manage_shader(shader_program: ShaderProgram) !u32 {
-    std.debug.assert(allocator != undefined);
-    try managed_shaders.append(allocator, shader_program);
+    if (!allocator) unreachable;
+    try managed_shaders.append(allocator.?, shader_program);
     return managed_shaders.items.len - 1;
 }
 
 pub fn deinit() void {
-    std.debug.assert(allocator != undefined);
+    if (!allocator) unreachable;
 
-    const shader_programs = try managed_shaders.toOwnedSlice(allocator);
+    const shader_programs = try managed_shaders.toOwnedSlice(allocator.?);
     for (shader_programs) |shader_program| {
         shader_program.deinit();
     }

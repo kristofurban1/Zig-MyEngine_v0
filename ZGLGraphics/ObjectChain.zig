@@ -50,13 +50,16 @@ pub fn CreateChain(comptime T: type) ObjChain(T, 0) {
     };
 }
 
-pub fn ResolveObjectChain(obj_chain: anytype) type {
+pub fn ResolveObjectChain(comptime obj_chain: anytype, _T: ?type) type {
     const ObjectChain = @TypeOf(obj_chain);
     if (!@hasDecl(ObjectChain, "__signature__object_chain__")) {
         @compileError("OBJECT_CHAIN :: Given type is not Object Chain!");
     }
 
     const T = ObjectChain.T;
+    if (_T) |_type| {
+        if (T != _type) @compileError("OBJECT_CHAIN :: Given ObjectChain's type is not the requested type!");
+    }
     const LENGTH = ObjectChain.LENGTH;
-    return ObjChain(T, LENGTH);
+    return ObjChain(if (_T) _T.? else T, LENGTH);
 }
