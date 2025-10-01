@@ -12,17 +12,32 @@ fn glfw_error_callback(error_code: c_int, description: [*c]const u8) callconv(.c
     std.debug.print("GLFW ERROR {d}: {s}\n", .{ error_code, description });
 }
 
-pub fn _test() !void {
-    _ = _g.glfwSetErrorCallback(&glfw_error_callback);
+var allocator: ?std.mem.Allocator = null;
 
-    const allocator = std.heap.page_allocator;
-    try Shaders.init(allocator);
-    try Reporter.init(allocator);
+pub fn init(_allocator: std.mem.Allocator) !void {
+    if (allocator != null) unreachable;
+    allocator = _allocator;
+    if (allocator == null) unreachable;
+
+    _ = _g.glfwSetErrorCallback(&glfw_error_callback);
+    try Reporter.init(allocator.?); 
+    
+    try Shaders.init(allocator.?);
 
     if (_g.glfwInit() == 0) {
-        std.debug.print("GLFW INITIALIZATION FAILURE\n", .{});
+        Reporter.report(.Critical, "GLFW Initialization failure!", .{});
         return error.GLFW_INIT_FAIL;
     }
+
+}
+
+pub fn deinit() !void {
+
+}
+
+pub fn _test() !void {
+
+
 
     _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MAJOR, 3);
     _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MINOR, 3);

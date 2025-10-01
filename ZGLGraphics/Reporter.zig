@@ -39,7 +39,7 @@ pub fn init(_allocator: std.mem.Allocator) !void {
 }
 
 pub fn deinit() void {
-    if (allocator == null) unreachable;
+    if (allocator == null) return;
 
     buffer.deinit(allocator.?);
 }

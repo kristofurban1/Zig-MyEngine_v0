@@ -167,7 +167,7 @@ pub fn retrieve_shader(index: u64) !ShaderProgram {
 }
 
 pub fn deinit() !void {
-    if (allocator == null) unreachable;
+    if (allocator == null) return;
 
     const shader_programs = try managed_shaders.toOwnedSlice(allocator.?);
     for (shader_programs) |shader_program| {
