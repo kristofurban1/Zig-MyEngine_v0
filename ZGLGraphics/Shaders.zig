@@ -21,17 +21,25 @@ const ShaderVerifyInqury = [_]NamedTypeCode{
 };
 
 fn verify_shader(shader_id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: []const u8) !void {
-    var success: i32 = undefined;
-    const log_len = 510;
-    var infoLog: [(log_len + 2):0]u8 = undefined;
-    const infoLog_ptr: [*c]u8 = &infoLog;
+    var success: i32 = 0;
     _g.glGetShaderiv(shader_id, ShaderVerifyInqury[@intFromEnum(inqury)].code, &success);
-    // TODO: Set infolog length in zig to sentinel terminated length
+
     if (success != 0) {
         try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name });
     } else {
+        const log_len = 510;
+        var infoLog: [(log_len + 2):0]u8 = undefined;
+        const infoLog_ptr: [*c]u8 = &infoLog;
         _g.glGetShaderInfoLog(shader_id, log_len, null, infoLog_ptr);
-        try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name, infoLog });
+
+        var len: usize = 0;
+        for (infoLog) |c| {
+            if (c == 0) break;
+            len += 1;
+        }
+
+        const bounded_infolog = infoLog[0..len];
+        try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name, bounded_infolog });
         return error.ShaderVerificatonFailed;
     }
 }
