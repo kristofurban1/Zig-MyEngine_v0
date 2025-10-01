@@ -6,6 +6,7 @@ const C_STR = [:0]const u8;
 pub const Reporter = @import("Reporter.zig");
 pub const Shaders = @import("Shaders.zig");
 pub const ObjectChain = @import("ObjectChain.zig");
+pub const NamedTypeCode = @import("NamedTypeCode.zig");
 
 fn glfw_error_callback(error_code: c_int, description: [*c]const u8) callconv(.c) void {
     std.debug.print("GLFW ERROR {d}: {s}\n", .{ error_code, description });

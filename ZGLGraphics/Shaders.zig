@@ -1,31 +1,26 @@
 const std = @import("std");
-const testing = std.testing;
 const ZGL = @import("ZGL.zig");
 
 const _g = @import("_glfw_glad_.zig").import;
 const Reporter = ZGL.Reporter;
 const ObjectChain = ZGL.ObjectChain;
 
-const NamedTypeCode = struct {
-    code: u32,
-    name: []const u8,
-};
+const NamedTypeCode = ZGL.NamedTypeCode;
 
-const ShaderVerifyInquryTypes = enum {
-    GL_COMPILE_STATUS,
-    GL_LINK_STATUS,
-};
-const ShaderVerifyInqury = [_]NamedTypeCode{
-    .{ .code = 0x8B81, .name = "COMPILE" },
-    .{ .code = 0x8B82, .name = "LINK" },
-};
+const ShaderVerifyInquryTypes = enum { COMPILE_STATUS, LINK_STATUS };
+
+const ShaderVerifyInqury = NamedTypeCode.CreateNamedTypeCodeStore(ShaderVerifyInquryTypes)
+    .chain(.{ .identifyer = .COMPILE_STATUS, .code = _g.GL_COMPILE_STATUS, .name = "COMPILE" })
+    .chain(.{ .identifyer = .LINK_STATUS, .code = _g.GL_LINK_STATUS, .name = "LINK" });
 
 fn verify_shader(shader_id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: []const u8) !void {
+    const shader_verify_inqury = ShaderVerifyInqury.get(inqury).?;
+
     var success: i32 = 0;
-    _g.glGetShaderiv(shader_id, ShaderVerifyInqury[@intFromEnum(inqury)].code, &success);
+    _g.glGetShaderiv(shader_id, shader_verify_inqury.code, &success);
 
     if (success != 0) {
-        try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name });
+        try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, shader_verify_inqury.name });
     } else {
         const log_len = 510;
         var infoLog: [(log_len + 2):0]u8 = undefined;
@@ -37,37 +32,32 @@ fn verify_shader(shader_id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: 
             if (c == 0) break;
             len += 1;
         }
-
         const bounded_infolog = infoLog[0..len];
-        try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, ShaderVerifyInqury[@intFromEnum(inqury)].name, bounded_infolog });
+
+        try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, shader_verify_inqury.name, bounded_infolog });
         return error.ShaderVerificatonFailed;
     }
 }
 
-const ShaderTypes = enum(usize) {
-    VERTEX,
-    TESS_CONTROL,
-    TESS_EVAL,
-    GEOMETRY,
-    FRAGMENT,
-    COMPUTE,
-};
-const ShaderType = [_]NamedTypeCode{
-    .{ .code = 0x8B31, .name = "VERTEX" },
-    .{ .code = 0x8E88, .name = "TESS_CONTROL" },
-    .{ .code = 0x8E87, .name = "TESS_EVAL" },
-    .{ .code = 0x8DD9, .name = "GEOMETRY" },
-    .{ .code = 0x8B30, .name = "FRAGMENT" },
-    .{ .code = 0x91B9, .name = "COMPUTE" },
-};
+const ShaderTypes = enum(usize) { VERTEX, TESS_CONTROL, TESS_EVAL, GEOMETRY, FRAGMENT, COMPUTE };
 
-fn create_shader(shader_type: ShaderTypes, program: [:0]const u8) !u32 {
-    const id = _g.glCreateShader(ShaderType[@intFromEnum(shader_type)].code);
+const ShaderType = NamedTypeCode.CreateNamedTypeCodeStore(ShaderTypes)
+    .chain(.{ .identifyer = .VERTEX, .code = _g.GL_VERTEX_SHADER, .name = "VERTEX" })
+    .chain(.{ .identifyer = .TESS_CONTROL, .code = _g.GL_TESS_CONTROL_SHADER, .name = "TESS_CONTROL" })
+    .chain(.{ .identifyer = .TESS_EVAL, .code = _g.GL_TESS_EVALUATION_SHADER, .name = "TESS_EVAL" })
+    .chain(.{ .identifyer = .GEOMETRY, .code = _g.GL_GEOMETRY_SHADER, .name = "GEOMETRY" })
+    .chain(.{ .identifyer = .FRAGMENT, .code = _g.GL_FRAGMENT_SHADER, .name = "FRAGMENT" })
+    .chain(.{ .identifyer = .COMPUTE, .code = _g.GL_COMPUTE_SHADER, .name = "COMPUTE" });
+
+fn create_shader(shader_type_identifyer: ShaderTypes, program: [:0]const u8) !u32 {
+    const shader_type = ShaderType.get(shader_type_identifyer).?;
+
+    const id = _g.glCreateShader(shader_type.code);
     const _program: [*c]const [*c]const u8 = @ptrCast(&program.ptr);
     _g.glShaderSource(id, 1, _program, null);
     _g.glCompileShader(id);
 
-    try verify_shader(id, .GL_COMPILE_STATUS, ShaderType[@intFromEnum(shader_type)].name);
+    try verify_shader(id, .COMPILE_STATUS, shader_type.name);
 
     return id;
 }
@@ -96,7 +86,7 @@ pub const ShaderProgram = struct {
             _g.glLinkProgram(self.program.shader_program);
             try verify_shader(
                 self.program.shader_program,
-                .GL_LINK_STATUS,
+                .LINK_STATUS,
                 self.program.label,
             );
         }
