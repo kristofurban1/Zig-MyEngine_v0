@@ -7,6 +7,10 @@ Roadmap:
   - [✖️] TextureObject: Takes resource, stores texture and provides it for rendering. Handles loading and disposing of data.
 
 - Graphics
+  - [✖️] PrimitiveRenderer (rect)
+  - [✖️] SpriteRenderer (rect+texture)
+  - [✖️] TextRenderer (RawText)
+  - [✖️] DebugGui (Imgui or custom implementation<text+rect+sprite>)
 
 - General:
   - [✔️] ObjectChain: Stores comptime chain of objects with iterator interface.
