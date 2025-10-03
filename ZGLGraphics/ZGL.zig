@@ -13,40 +13,69 @@ pub const Reporter = @import("Utils/Reporter.zig");
 pub const Windows = @import("Rendering/Windows.zig");
 pub const Shaders = @import("Rendering/Shaders.zig");
 
-fn glfw_error_callback(error_code: c_int, description: [*c]const u8) callconv(.c) void {
-    std.debug.print("GLFW ERROR {d}: {s}\n", .{ error_code, description });
-}
-
 var allocator: ?std.mem.Allocator = null;
 
-const GlobalState = struct {
+pub const GlobalState = struct {
+    const ErrorCallback = ?*const fn (i32, u8) void;
+
+    is_initialized: bool = false,
+
     context: ?*Windows.Window = null,
     gladVersion: i32 = 0,
 
-    pub fn init() @This() {}
+    user_error_callback: ErrorCallback = null,
 
-    pub fn set_context(self: *@This(), window: Windows.Window) void {
-        self.*.context = window;
 
-        if (self.gladVersion == 0)
-            self.*.gladVersion = _g.gladLoadGL(_g.glfwGetProcAddress);
+    fn init_assert() void {
+        if (!globalState.is_initialized) unreachable;
     }
+
+    fn glfw_error_callback(error_code: c_int, description: [*c]const u8) callconv(.c) void {
+        if (globalState.user_error_callback) |callback| {
+            callback(error_code, description);
+        } else {
+            try Reporter.report(.Error, "GLFW Error [{d}]\n{s}\n", .{ error_code, description });
+        }
+    }
+
+    pub fn set_glfw_error_callback(callback: ErrorCallback) void {
+        init_assert();
+        globalState.user_error_callback = callback;
+    }
+
+    pub fn set_context(window: Windows.Window) !void {
+        init_assert();
+        globalState.context = window;
+
+        if (globalState.gladVersion == 0) {
+            globalState.gladVersion = _g.gladLoadGL(_g.glfwGetProcAddress);
+            if (globalState.gladVersion == 0) {
+                try Reporter.report(.Critical, "GLAD Loading has failed!", .{});
+                return error.GLAD_LOAD_FAILED;
+            }
+            try Reporter.report(.Info, "GLAD Version: {s}", .{_g.glGetString(_g.GL_VERSION)});
+        }
+    }
+
+    pub fn 
 };
 
-pub var globalState = GlobalState.init();
+var globalState = GlobalState{};
 
 pub fn init(_allocator: std.mem.Allocator) !void {
     if (allocator != null) unreachable;
     allocator = _allocator;
     if (allocator == null) unreachable;
 
-    _ = _g.glfwSetErrorCallback(&glfw_error_callback);
+    _ = _g.glfwSetErrorCallback(GlobalState.glfw_error_callback);
     try Reporter.init(allocator.?);
 
     if (_g.glfwInit() == 0) {
         try Reporter.report(.Critical, "GLFW Initialization failure!", .{});
         return error.GLFW_INIT_FAIL;
     }
+    
+    globalState.is_initialized = true;
 }
 
 pub fn deinit() !void {}
@@ -54,14 +83,8 @@ pub fn deinit() !void {}
 pub fn _test() !void {
     try init(std.heap.page_allocator);
 
-    var window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null);
-    window = window;
-    globalState.set_context(window);
-
-    _ = _g.gladLoadGL(_g.glfwGetProcAddress);
-    _g.glfwSwapInterval(1);
-
-    try Reporter.report(.Info, "Opengl Version: {s}", .{_g.glGetString(_g.GL_VERSION)});
+    const window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null);
+    try globalState.set_context(window);
 
     const Shader = Shaders.Shader;
 

@@ -8,8 +8,6 @@ const _g = ZGL.OPENGL;
 pub const WindowHint = struct { hint: i32, value: i32 };
 
 pub const Window = struct {
-    const globalState = &ZGL.globalState;
-
     window_title: [:0]const u8,
     window: *_g.GLFWwindow,
     swap_interval: i32 = 1,
@@ -48,7 +46,7 @@ pub const Window = struct {
     }
 
     pub fn frame(self: *@This()) !void {
-        globalState.set_context(self);
+        ZGL.GlobalState.set_context(self);
         if (_g.glfwWindowShouldClose(self.window)) {
             try Reporter.report(.Info, "Window Closed! [{s}]", .{self.window_title});
             return;
