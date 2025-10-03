@@ -1,5 +1,6 @@
 Roadmap:
 - Rendering
+  - [✖️] Window: Stores windows, handles context.
   - [✔️] Shaders:  ShaderProgram compilation.
   - [✖️] VertexData: Setup for VBO and VAO, handling data management, transport, bounds, types. One time setup apart from data modification.
   - [✖️] RenderPipeline: Takes ShaderProgram, attaches uniforms, other render dependencies. One time setup

@@ -1,7 +1,7 @@
 const std = @import("std");
-const ZGL = @import("ZGL.zig");
+const ZGL = @import("../ZGL.zig");
 
-const _g = @import("_glfw_glad_.zig").import;
+const _g = ZGL.OPENGL;
 const Reporter = ZGL.Reporter;
 const ObjectChain = ZGL.ObjectChain;
 
@@ -150,37 +150,4 @@ pub fn ShaderProgramCompiler(comptime T: type) type {
             return builder.finish();
         }
     };
-}
-
-var allocator: ?std.mem.Allocator = null;
-var managed_shaders: std.ArrayList(ShaderProgram) = undefined;
-
-pub fn init(_allocator: std.mem.Allocator) !void {
-    if (allocator) |_| unreachable;
-    allocator = _allocator;
-    if (allocator == null) unreachable;
-
-    managed_shaders = try std.ArrayList(ShaderProgram).initCapacity(allocator.?, 0);
-}
-
-/// Managed shaders are kept until Shaders.deinit, so the lifetime of the application. Do not deinit managed shaders!
-pub fn manage_shader(shader_program: ShaderProgram) !u64 {
-    if (allocator == null) unreachable;
-    try managed_shaders.append(allocator.?, shader_program);
-    return managed_shaders.items.len - 1;
-}
-
-pub fn retrieve_shader(index: u64) !ShaderProgram {
-    if (allocator == null) unreachable;
-    if (index >= managed_shaders.items.len) unreachable; // Out of bounds
-    return managed_shaders.items[index];
-}
-
-pub fn deinit() !void {
-    if (allocator == null) return;
-
-    const shader_programs = try managed_shaders.toOwnedSlice(allocator.?);
-    for (shader_programs) |shader_program| {
-        shader_program.deinit();
-    }
 }

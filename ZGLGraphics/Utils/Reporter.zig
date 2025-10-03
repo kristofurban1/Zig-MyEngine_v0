@@ -44,22 +44,22 @@ pub fn deinit() void {
     buffer.deinit(allocator.?);
 }
 
-const ImmidiateCallback = struct { comptime callback: ?*const fn (Report) void = null };
-var immidiate_callback: ImmidiateCallback = .{ .callback = null };
+const ImmidiateCallback = ?*const fn (Report) void;
+var immidiate_callback: ImmidiateCallback = null;
 
 pub fn report(level: ReportLevels, comptime fmt: []const u8, args: anytype) !void {
     const report_entry = try Report.init(level, fmt, args);
-    if (immidiate_callback.callback) |callback_prt| {
-        callback_prt.*(report_entry);
+    if (immidiate_callback) |callback| {
+        callback(report_entry);
     } else {
         try buffer.append(allocator.?, report_entry);
     }
 }
 
-pub fn set_immidiate_callback(comptime callback: ?*const fn (Report) void) void {
-    _ = callback;
+pub fn set_immidiate_callback(comptime callback: ImmidiateCallback) void {
+    //_ = callback;
+    immidiate_callback = callback;
     return;
-    //immidiate_callback.callback = callback;
 }
 
 /// Returns a raw slice of reports. The slice and each slice value must be freed!
