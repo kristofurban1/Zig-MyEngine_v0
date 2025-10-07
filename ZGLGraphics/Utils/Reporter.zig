@@ -13,10 +13,10 @@ pub const Report = struct {
     level: ReportLevels,
     message: []const u8,
 
-    pub fn init(_level: ReportLevels, comptime fmt: []const u8, args: anytype) !@This() {
+    pub fn init(level: ReportLevels, comptime fmt: []const u8, args: anytype) !@This() {
         if (allocator == null) unreachable;
         return .{
-            .level = _level,
+            .level = level,
             .message = try std.fmt.allocPrint(allocator.?, fmt, args),
         };
     }
@@ -47,12 +47,22 @@ pub fn deinit() void {
 const ImmidiateCallback = ?*const fn (Report) void;
 var immidiate_callback: ImmidiateCallback = null;
 
-pub fn report(level: ReportLevels, comptime fmt: []const u8, args: anytype) !void {
-    const report_entry = try Report.init(level, fmt, args);
+fn fallback_reporter(level: ReportLevels, comptime fmt: []const u8, args: anytype) void {
+    std.debug.print("<FALLBACK> {s} -- " ++ fmt ++ "\n", .{@tagName(level)} ++ args);
+}
+
+pub fn report(level: ReportLevels, comptime fmt: []const u8, args: anytype) void {
+    const report_entry = Report.init(level, fmt, args) catch {
+        fallback_reporter(level, fmt, args);
+        return;
+    };
     if (immidiate_callback) |callback| {
         callback(report_entry);
     } else {
-        try buffer.append(allocator.?, report_entry);
+        buffer.append(allocator.?, report_entry) catch {
+            fallback_reporter(level, fmt, args);
+            return;
+        };
     }
 }
 

@@ -13,28 +13,31 @@ pub const Window = struct {
     swap_interval: i32 = 1,
 
     pub fn create(width: u32, height: u32, title: [:0]const u8, monitor: ?*_g.GLFWmonitor, share: ?*Window) !@This() {
-        try Reporter.report(.Info, "Creating window [{s}]...", .{title});
+        Reporter.report(.Info, "Creating window [{s}]...", .{title});
 
         _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MAJOR, 4);
         _g.glfwWindowHint(_g.GLFW_CONTEXT_VERSION_MINOR, 5);
         _g.glfwWindowHint(_g.GLFW_OPENGL_PROFILE, _g.GLFW_OPENGL_CORE_PROFILE);
 
+        _ = share;
+        const _share: ?*_g.GLFWwindow = null;
+
         const window = _g.glfwCreateWindow(
-            width,
-            height,
+            @intCast(width),
+            @intCast(height),
             title,
             monitor,
-            share,
+            _share,
         );
+
         if (window == null) {
-            try Reporter.report(.Critical, "Window Creation failed! [{s}]", .{title});
+            Reporter.report(.Critical, "Window Creation failed! [{s}]", .{title});
             return error.GLFW_WINDOW_FAIL;
         }
 
-        _g.glfwSwapInterval(1);
         return .{
             .window_title = title,
-            .window = window,
+            .window = window.?,
             .swap_interval = 1,
         };
     }
@@ -47,6 +50,9 @@ pub const Window = struct {
 
     pub fn frame(self: *@This()) !void {
         ZGL.GlobalState.set_context(self);
+
+        self.set_swap_interval(self.swap_interval);
+
         if (_g.glfwWindowShouldClose(self.window)) {
             try Reporter.report(.Info, "Window Closed! [{s}]", .{self.window_title});
             return;
