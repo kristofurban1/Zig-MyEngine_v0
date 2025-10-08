@@ -25,7 +25,6 @@ pub const GlobalState = struct {
 
     user_error_callback: ErrorCallback = null,
 
-
     fn init_assert() void {
         if (!globalState.is_initialized) unreachable;
     }
@@ -57,7 +56,7 @@ pub const GlobalState = struct {
         }
     }
 
-    pub fn 
+    // pub fn
 };
 
 var globalState = GlobalState{};
@@ -74,7 +73,7 @@ pub fn init(_allocator: std.mem.Allocator) !void {
         try Reporter.report(.Critical, "GLFW Initialization failure!", .{});
         return error.GLFW_INIT_FAIL;
     }
-    
+
     globalState.is_initialized = true;
 }
 
