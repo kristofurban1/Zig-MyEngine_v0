@@ -72,9 +72,7 @@ pub const GlobalState = struct {
         // Init main loop
 
         // Call mainloop subscribers
-        while (globalState.main_loops.enumerate()) |main_loop_call| {
-            main_loop_call();
-        }
+        globalState.main_loops.fire(.{});
 
         // End main loop
         _g.glfwPollEvents();

@@ -70,7 +70,7 @@ pub fn SafeCollection(comptime T: type) type {
         pub fn enumerator(self: *@This()) TEnumerator {
             if (self.*._enumerator) |_enumerator|
                 return _enumerator;
-            self.*._enumerator = TEnumerator.init(self.collection.items);
+            self.*._enumerator = TEnumerator.init(self.*.collection.items.items);
             return self.*._enumerator.?;
         }
 
@@ -82,7 +82,8 @@ pub fn SafeCollection(comptime T: type) type {
         }
 
         pub fn next(self: *@This()) ?T {
-            const _next = self.*.enumerator().next();
+            var _enumerator = self.*.enumerator();
+            const _next = _enumerator.next();
             if (_next == null) self.reset(); // Reset Enumerator (to enable write access)
             return _next;
         }

@@ -3,7 +3,7 @@ pub fn Enumerator(comptime T: type) type {
         array: []T,
         current: usize,
 
-        pub fn init(array: *const []T) @This() {
+        pub fn init(array: []T) @This() {
             return .{
                 .array = array,
                 .current = 0,

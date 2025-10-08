@@ -54,14 +54,12 @@ pub fn Event(comptime T: type) type {
         pub fn cleanup(self: *@This()) ERR!void {
             try self.*.collection.cleanup();
         }
-        pub fn reset(self: *@This()) void {
+
+        pub fn fire(self: *@This(), args: anytype) void {
             self.*.collection.reset();
-        }
-        pub fn enumerate(self: *@This()) ?TSafeCollection.TEnumerator {
-            return self.*.collection.enumerator();
-        }
-        pub fn next(self: *@This()) ?T {
-            return self.*.collection.next();
+            inline for (self.*.collection.next()) |_event| {
+                @call(.auto, _event, args);
+            }
         }
 
         pub fn deinit(self: @This()) void {
