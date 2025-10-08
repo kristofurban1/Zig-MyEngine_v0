@@ -27,13 +27,10 @@ pub const GlobalState = struct {
 
     user_error_callback: ErrorCallback = null,
 
-<<<<<<< HEAD
-=======
     should_close: bool = false,
 
     main_loops: Event(MainLoopCall) = undefined,
 
->>>>>>> origin
     fn init_assert() void {
         if (!globalState.is_initialized) unreachable;
     }
@@ -71,9 +68,6 @@ pub const GlobalState = struct {
         }
     }
 
-<<<<<<< HEAD
-    // pub fn
-=======
     pub fn main_loop() void {
         // Init main loop
 
@@ -85,7 +79,6 @@ pub const GlobalState = struct {
         // End main loop
         _g.glfwPollEvents();
     }
->>>>>>> origin
 };
 
 var globalState = GlobalState{};
@@ -103,11 +96,8 @@ pub fn init(_allocator: std.mem.Allocator) !void {
         return error.GLFW_INIT_FAIL;
     }
 
-<<<<<<< HEAD
-=======
     globalState.main_loops = try Event(GlobalState.MainLoopCall).init(allocator.?, 0.5);
 
->>>>>>> origin
     globalState.is_initialized = true;
 }
 
