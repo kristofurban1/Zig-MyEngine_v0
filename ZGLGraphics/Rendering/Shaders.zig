@@ -23,7 +23,7 @@ fn verify_operation(id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: []co
     }
 
     if (success != 0) {
-        try Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, shader_verify_inqury.name });
+        Reporter.report(.Info, "Shader {s} <{s}> Success!", .{ shader_lable, shader_verify_inqury.name });
     } else {
         const log_len = 510;
         var infoLog: [(log_len + 2):0]u8 = undefined;
@@ -41,7 +41,7 @@ fn verify_operation(id: u32, inqury: ShaderVerifyInquryTypes, shader_lable: []co
         }
         const bounded_infolog = infoLog[0..len];
 
-        try Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, shader_verify_inqury.name, bounded_infolog });
+        Reporter.report(.Error, "Shader {s} <{s}> Faliure:\n{s}", .{ shader_lable, shader_verify_inqury.name, bounded_infolog });
         return error.ShaderVerificatonFailed;
     }
 }
@@ -86,7 +86,7 @@ pub const ShaderProgram = struct {
                 shader.program,
             );
             const shader_type = ShaderType.get(shader.type);
-            try Reporter.report(.Info, "Attached shader {s} to program: {s}.", .{ shader_type.?.name, self.program.label });
+            Reporter.report(.Info, "Attached shader {s} to program: {s}.", .{ shader_type.?.name, self.program.label });
             _g.glAttachShader(self.program.shader_program, shader_id);
             return shader_id;
         }
