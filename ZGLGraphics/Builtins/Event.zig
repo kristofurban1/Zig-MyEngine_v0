@@ -11,14 +11,16 @@ pub fn Event(comptime T: type) type {
         if (info == .pointer and @typeInfo(info.pointer.child) != .@"fn" and info.pointer.is_const != false)
             @compileError("Event<T> must be fn or const pointer to fn!");
     }
-    const Collection = SafeCollection(T);
     return struct {
+        pub const TSafeCollection = SafeCollection(T);
+        pub const ERR = TSafeCollection.ERR;
+
         pub const Interface = struct {
-            connect: *const fn (listener: T) anyerror!void,
-            disconnect: *const fn (listener: T) anyerror!void,
+            connect: *const fn (T) ERR!void,
+            disconnect: *const fn (T) ERR!void,
         };
 
-        collection: Collection,
+        collection: TSafeCollection,
 
         pub fn interface(self: @This()) Interface {
             const collection_interface = self.collection.interface();
@@ -31,7 +33,7 @@ pub fn Event(comptime T: type) type {
         /// Cleanup Treshold[0-1]: Clean invalidated items when under % treshold.
         pub fn init(allocator: std.mem.Allocator, cleanup_treshold: f32) !@This() {
             return .{
-                .collection = try Collection.init(allocator, cleanup_treshold),
+                .collection = try TSafeCollection.init(allocator, cleanup_treshold),
             };
         }
 
@@ -39,21 +41,29 @@ pub fn Event(comptime T: type) type {
             return self.collection.has(listener);
         }
 
-        pub fn connect(self: *@This(), listener: T) !void {
+        pub fn is_enumerating(self: @This()) bool {
+            return self.collection.is_enumerating();
+        }
+
+        pub fn connect(self: *@This(), listener: T) ERR!void {
             try self.*.collection.add(listener);
         }
-        pub fn disconnect(self: *@This(), listener: T) !void {
+        pub fn disconnect(self: *@This(), listener: T) ERR!void {
             try self.*.collection.remove(listener);
         }
-        pub fn cleanup(self: *@This()) !void {
+        pub fn cleanup(self: *@This()) ERR!void {
             try self.*.collection.cleanup();
         }
         pub fn reset(self: *@This()) void {
             self.*.collection.reset();
         }
-        pub fn enumerate(self: *@This()) ?T {
-            return self.*.collection.enumerate();
+        pub fn enumerate(self: *@This()) ?TSafeCollection.TEnumerator {
+            return self.*.collection.enumerator();
         }
+        pub fn next(self: *@This()) ?T {
+            return self.*.collection.next();
+        }
+
         pub fn deinit(self: @This()) void {
             self.*.collection.deinit();
         }
