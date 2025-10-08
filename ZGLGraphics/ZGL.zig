@@ -18,6 +18,7 @@ var allocator: ?std.mem.Allocator = null;
 
 pub const GlobalState = struct {
     const MainLoopCall = *const fn () void;
+    const MainLoopEvent = Event(MainLoopCall);
     const ErrorCallback = ?*const fn (i32, []const u8) void;
 
     is_initialized: bool = false,
@@ -29,7 +30,7 @@ pub const GlobalState = struct {
 
     should_close: bool = false,
 
-    main_loops: Event(MainLoopCall) = undefined,
+    main_loops: MainLoopEvent = undefined,
 
     fn init_assert() void {
         if (!globalState.is_initialized) unreachable;
@@ -68,6 +69,10 @@ pub const GlobalState = struct {
         }
     }
 
+    pub fn main_loop_event() *MainLoopEvent {
+        return &globalState.main_loops;
+    }
+
     pub fn main_loop() void {
         // Init main loop
 
@@ -94,7 +99,7 @@ pub fn init(_allocator: std.mem.Allocator) !void {
         return error.GLFW_INIT_FAIL;
     }
 
-    globalState.main_loops = try Event(GlobalState.MainLoopCall).init(allocator.?, 0.5);
+    globalState.main_loops = try Event(GlobalState.MainLoopCall).init(allocator.?);
 
     globalState.is_initialized = true;
 }
@@ -107,7 +112,6 @@ pub fn deinit() void {
 }
 
 pub fn _test() !void {
-    try init(std.heap.page_allocator);
 
     const window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null);
     try GlobalState.set_context(&window);

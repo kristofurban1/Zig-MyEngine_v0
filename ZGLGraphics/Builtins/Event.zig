@@ -7,7 +7,7 @@ pub fn Event(comptime T: type) type {
     comptime {
         const info = @typeInfo(T);
         if (info != .pointer and info != .@"fn")
-            @compileError("Event<T> must be fn or pointer to fn!");
+            @compileError("Event<T> must be fn or const pointer to fn!");
         if (info == .pointer and @typeInfo(info.pointer.child) != .@"fn" and info.pointer.is_const != false)
             @compileError("Event<T> must be fn or const pointer to fn!");
     }
@@ -15,25 +15,12 @@ pub fn Event(comptime T: type) type {
         pub const TSafeCollection = SafeCollection(T);
         pub const ERR = TSafeCollection.ERR;
 
-        pub const Interface = struct {
-            connect: *const fn (T) ERR!void,
-            disconnect: *const fn (T) ERR!void,
-        };
-
         collection: TSafeCollection,
 
-        pub fn interface(self: @This()) Interface {
-            const collection_interface = self.collection.interface();
-            return .{
-                .connect = collection_interface.add,
-                .disconnect = collection_interface.remove,
-            };
-        }
-
         /// Cleanup Treshold[0-1]: Clean invalidated items when under % treshold.
-        pub fn init(allocator: std.mem.Allocator, cleanup_treshold: f32) !@This() {
+        pub fn init(allocator: std.mem.Allocator) !@This() {
             return .{
-                .collection = try TSafeCollection.init(allocator, cleanup_treshold),
+                .collection = try TSafeCollection.init(allocator),
             };
         }
 
@@ -56,9 +43,9 @@ pub fn Event(comptime T: type) type {
         }
 
         pub fn fire(self: *@This(), args: anytype) void {
-            self.*.collection.reset();
-            inline for (self.*.collection.next()) |_event| {
-                @call(.auto, _event, args);
+            self.*.collection.reset(); // For safety
+            while (self.*.collection.next()) |listener| {
+                @call(.auto, listener, args);
             }
         }
 

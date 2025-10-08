@@ -13,34 +13,12 @@ pub fn SafeCollection(comptime T: type) type {
             OutOfMemory,
         };
 
-        pub const SafeCollectionInterface = struct {
-            add: fn (item: T) ERR!void,
-            remove: fn (item: T) ERR!void,
-        };
-
         collection: TCollection,
         _enumerator: ?TEnumerator = null,
 
-        pub fn interface(self: @This()) SafeCollectionInterface {
-            const self_ptr = &self;
+        pub fn init(allocator: std.mem.Allocator) !@This() {
             return .{
-                .add = struct {
-                    fn add(obj: T) ERR!void {
-                        return self_ptr.add(obj);
-                    }
-                }.add,
-                .remove = struct {
-                    fn remove(obj: T) ERR!void {
-                        return self_ptr.remove(obj);
-                    }
-                }.remove,
-            };
-        }
-
-        /// Cleanup Treshold[0-1]: Clean invalidated items when under % treshold.
-        pub fn init(allocator: std.mem.Allocator, cleanup_treshold: f32) !@This() {
-            return .{
-                .collection = try TCollection.init(allocator, cleanup_treshold),
+                .collection = try TCollection.init(allocator),
             };
         }
 
