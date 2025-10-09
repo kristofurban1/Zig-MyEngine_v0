@@ -86,6 +86,10 @@ pub const GlobalState = struct {
 
 var globalState = GlobalState{};
 
+fn get_time_wrapper() f64 {
+    return _g.glfwGetTime();
+}
+
 pub fn init(_allocator: std.mem.Allocator) !void {
     if (allocator != null) unreachable;
     allocator = _allocator;
@@ -98,6 +102,8 @@ pub fn init(_allocator: std.mem.Allocator) !void {
         Reporter.report(.Critical, "GLFW Initialization failure!", .{});
         return error.GLFW_INIT_FAIL;
     }
+
+    Reporter.set_getTimeFn(get_time_wrapper);
 
     globalState.main_loops = try Event(GlobalState.MainLoopCall).init(allocator.?);
 
