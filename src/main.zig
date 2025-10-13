@@ -13,7 +13,7 @@ pub fn main() !void {
     ZGL.Reporter.set_immidiate_callback(reporter_callback);
     try ZGL.init(std.heap.page_allocator);
 
-    //try ZGL.GlobalState.main_loop_event().connect(test_event);
+    try ZGL.GlobalState.main_loop_event().connect(test_event);
 
     try ZGL._test();
 }
