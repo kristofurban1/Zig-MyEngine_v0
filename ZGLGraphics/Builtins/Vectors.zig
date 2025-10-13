@@ -36,24 +36,18 @@ pub fn TypedVector(comptime _T: type) type {
 
 }
 
-pub fn Vector(comptime _T: type, _LEN: comptime_int) type {
+pub fn Vector(comptime _T: type) type {
     return struct {
-        pub const T = _T;
-        pub const LEN = _LEN;
-        const VectorUNion = union(enum) {
-            STATIC_VECTOR: @Vector(LEN, T),
-            SIMPLE_VECTOR: [LEN] T,
-            DYNAMIC_VECTOR: [] T,
+        pub const T = _T;        
+        vector: []T,
 
-            pub fn init_static(elements: []T) @THis() {
-                return .{
-                    .SIMPLE_VECTOR = elements,
-                };
-            }
-        };0
-        
-        vector: VectorUNion,
+        pub fn init(elements: []T) @This() {
 
+        }
+
+        pub fn init_owned(elements: []T, allocator: Allocator) @This() {
+
+        }
 
         pub fn init_scalar(value: T) @This() {
             return .{
