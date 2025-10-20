@@ -20,13 +20,16 @@ pub fn build(b: *std.Build) void {
     zgl_mod.addLibraryPath(b.path("deps/GLFW"));
 
     if (target.result.os.tag == .windows) {
-        zgl_mod.linkSystemLibrary("mingw32", .{});
+        zgl_mod.linkSystemLibrary("glfw3", .{});
         zgl_mod.linkSystemLibrary("opengl32", .{});
+        zgl_mod.linkSystemLibrary("mingw32", .{});
         zgl_mod.linkSystemLibrary("gdi32", .{});
         zgl_mod.linkSystemLibrary("user32", .{});
         zgl_mod.linkSystemLibrary("shell32", .{});
         zgl_mod.linkSystemLibrary("kernel32", .{});
-        zgl_mod.linkSystemLibrary("glfw3", .{});
+    } else {
+        zgl_mod.linkSystemLibrary("glfw", .{});
+        //zgl_mod.linkSystemLibrary("GL", .{});
     }
 
     const exe = b.addExecutable(.{

@@ -15,6 +15,8 @@
 				buildInputs = [
 					pkgs.zls
 					pkgs.vimPlugins.nvim-treesitter-parsers.zig
+
+					pkgs.glfw
 				];
 
 
