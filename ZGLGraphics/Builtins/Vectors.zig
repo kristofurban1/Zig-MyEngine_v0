@@ -1,70 +1,76 @@
 const Allocator = @import("std").mem.Allocator;
 
-/// Vector wrapper for any Vector types.
-pub const AnyVector = struct {
-    T: type,
-    LEN: i64,
-    owned_vector: ?*anyopaque = null,
-
-    /// Wrap vector
-    pub fn init(vector: anytype) @This() {
-        _ = vector;
-    }
-
-    /// Wrap vector, and take ownership of vector. Call deinit to free allocated memory for vector.
-    pub fn init_borrow(vector: *anyopaque) @This() {
-        _ = vector;
-    }
-
-    pub fn deinit(self: @This(), allocator: Allocator) void {
-        if (self.owned_vector) |owned_vector| {
-            allocator.free(owned_vector);
-        }
-    }
-};
-
-pub fn TypedVector(comptime _T: type) type {
+pub fn Vector(comptime _T: type, comptime _LEN: comptime_int) type {
     return struct {
         pub const T = _T;
-        LEN: comptime_int,
-        anyvector: AnyVector,
+        pub const LEN = _LEN;
+        pub const Self = @This();
 
-        pub fn init(anyvector: AnyVector) @This(){
+        slice: [LEN]T,
 
-        }
+        
     };
-
 }
 
-pub fn Vector(comptime _T: type) type {
+/// Dynamic Vector runtime size, using borrowed slices.
+pub fn DVector(comptime _T: type) type {
     return struct {
-        pub const T = _T;        
-        vector: []T,
+        pub const T = _T;
+        pub const TVECTOR = DVector(T);
+        pub const Self = @This();
 
-        pub fn init(elements: []T) @This() {
+        slice: []T,
 
-        }
+        pub fn init(size: usize, allocator: Allocator) !Self {
+            var slice = try allocator.alloc(T, size);
+            for (0..size) |i| {
+                slice[i] = 0;
+            }
 
-        pub fn init_owned(elements: []T, allocator: Allocator) @This() {
-
-        }
-
-        pub fn init_scalar(value: T) @This() {
             return .{
-                .raw_vector = [LEN]T{value},
+                .slice = slice,
             };
         }
 
-        pub fn init_zero() @This() {
-            return init_scalar(0);
-        }
-
-        pub fn from_array(array: [LEN]T) @This() {
+        /// Borrows a slice, this slice is not freed by Vector, but its owner.
+        pub fn init_borrow(slice: []T, allocator: Allocator) Self {
             return .{
-                .raw_vector = array,
+                .allocator = allocator,
+                .slice = slice,
             };
         }
 
-        pub fn concat(self: @This, vector: AnyVector)
+        /// Lenght of vector.
+        pub fn len(self: Self) usize {
+            return self.slice.len;
+        }
+
+        /// Returns the
+        pub fn get(self: Self, index: usize) T {
+            return self.slice[index];
+        }
+
+        pub fn set(self: Self, index: usize, value: T) void {
+            self.slice[index] = value;
+        }
+
+        /// Pads or reduces an Vector to a target size. Creates an owned Vector, using provided Allocator.
+        pub fn padAlloc(vector: TVECTOR, target_size: usize, allocator: Allocator) Self {
+            var padded: []T = allocator.alloc(T, target_size);
+
+            for (0..target_size) |i| {
+                if (i <= vector.len()) {
+                    padded[i] = vector.get(i);
+                } else {
+                    padded[i] = 0;
+                }
+            }
+        }
+
+        //// Pads or reduces an Vector to a target size. Creates an owned Vector, using Vector's allocator.
+        // pub fn pad(self: Self, target_size: usize) Self {
+        //     padAlloc(self, target_size, self.allocator);
+        // }
+
     };
 }
