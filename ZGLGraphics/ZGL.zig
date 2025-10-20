@@ -11,6 +11,8 @@ pub const NamedTypeCode = @import("Utils/NamedTypeCode.zig");
 pub const Reporter = @import("Utils/Reporter.zig");
 pub const Event = @import("Builtins/Event.zig").Event;
 
+pub const Vectors = @import("Builtins/Vectors.zig");
+
 pub const Windows = @import("Rendering/Windows.zig");
 pub const Shaders = @import("Rendering/Shaders.zig");
 
@@ -118,7 +120,6 @@ pub fn deinit() void {
 }
 
 pub fn _test() !void {
-
     const window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null);
     try GlobalState.set_context(&window);
 

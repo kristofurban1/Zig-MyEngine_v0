@@ -1,76 +1,46 @@
-const Allocator = @import("std").mem.Allocator;
-
-pub fn Vector(comptime _T: type, comptime _LEN: comptime_int) type {
+pub fn Vector(comptime T: type, comptime L: comptime_int) type {
     return struct {
-        pub const T = _T;
-        pub const LEN = _LEN;
-        pub const Self = @This();
+        pub const _T = T;
+        pub const _L = L;
 
-        slice: [LEN]T,
-
-        
+        vector: @Vector(L, T),
     };
 }
 
-/// Dynamic Vector runtime size, using borrowed slices.
-pub fn DVector(comptime _T: type) type {
-    return struct {
-        pub const T = _T;
-        pub const TVECTOR = DVector(T);
-        pub const Self = @This();
+fn assert_vector(comptime vec: anytype) void {
+    const V = @TypeOf(vec);
+    if (!(@hasDecl(V, "_T") and @hasDecl(V, "_L")))
+        @compileError("Given type is not Vector!");
 
-        slice: []T,
-
-        pub fn init(size: usize, allocator: Allocator) !Self {
-            var slice = try allocator.alloc(T, size);
-            for (0..size) |i| {
-                slice[i] = 0;
-            }
-
-            return .{
-                .slice = slice,
-            };
-        }
-
-        /// Borrows a slice, this slice is not freed by Vector, but its owner.
-        pub fn init_borrow(slice: []T, allocator: Allocator) Self {
-            return .{
-                .allocator = allocator,
-                .slice = slice,
-            };
-        }
-
-        /// Lenght of vector.
-        pub fn len(self: Self) usize {
-            return self.slice.len;
-        }
-
-        /// Returns the
-        pub fn get(self: Self, index: usize) T {
-            return self.slice[index];
-        }
-
-        pub fn set(self: Self, index: usize, value: T) void {
-            self.slice[index] = value;
-        }
-
-        /// Pads or reduces an Vector to a target size. Creates an owned Vector, using provided Allocator.
-        pub fn padAlloc(vector: TVECTOR, target_size: usize, allocator: Allocator) Self {
-            var padded: []T = allocator.alloc(T, target_size);
-
-            for (0..target_size) |i| {
-                if (i <= vector.len()) {
-                    padded[i] = vector.get(i);
-                } else {
-                    padded[i] = 0;
-                }
-            }
-        }
-
-        //// Pads or reduces an Vector to a target size. Creates an owned Vector, using Vector's allocator.
-        // pub fn pad(self: Self, target_size: usize) Self {
-        //     padAlloc(self, target_size, self.allocator);
-        // }
-
-    };
+    const _type: type = vec._T;
+    const _len: comptime_int = vec._L;
+    if (V != Vector(_type, _len))
+        @compileError("Given type is not Vector!");
 }
+
+fn assert_vector_type_match(comptime vec1: anytype, comptime vec2: anytype) void {
+    assert_vector(vec1);
+    assert_vector(vec2);
+
+    if (vec1._T != vec2._T)
+        @compileError("Given vector's types do not match!");
+}
+
+fn assert_vector_length_match(comptime vec1: anytype, comptime vec2: anytype) void {
+    assert_vector(vec1);
+    assert_vector(vec2);
+
+    if (vec1._L != vec2._L)
+        @compileError("Given vector's length do not match!");
+}
+
+pub const VectorOperations = struct {
+    pub fn add(vec1: anytype, vec2: anytype) @TypeOf(vec1) {
+        comptime {
+            assert_vector_type_match(vec1, vec2);
+            assert_vector_length_match(vec1, vec2);
+        }
+
+        return .{};
+    }
+};
