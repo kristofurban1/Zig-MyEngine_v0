@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
         zgl_mod.linkSystemLibrary("user32", .{});
         zgl_mod.linkSystemLibrary("shell32", .{});
         zgl_mod.linkSystemLibrary("kernel32", .{});
-    } else {
+    } else if (target.result.os.tag == .linux) {
         zgl_mod.linkSystemLibrary("glfw", .{});
         //zgl_mod.linkSystemLibrary("GL", .{});
     }
