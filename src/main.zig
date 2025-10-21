@@ -1,4 +1,4 @@
-//const std = @import("std");
+const std = @import("std");
 //const ZGL = @import("zgl");
 
 const Vectors = @import("zgl").Vectors;
@@ -27,11 +27,11 @@ pub fn main() !void {
     const v2 = Vec2_i32{ .vector = @Vector(2, i32){ 4, 5 } };
     const v3 = Vec3_f32{ .vector = @Vector(3, f32){ 1.0, 2.2, 3.5 } };
 
-    _ = Vectors.VectorOperations.add(v1, false);
+    _ = .{ v1, v2, v3 };
 
-    _ = Vectors.VectorOperations.add(v1, v2);
+    const v11 = Vec3_i32.Add(v1, v1);
+    const v11_ = v1.add(v2);
+    std.debug.print("V11: {any}\n", .{v11.vector});
 
-    _ = Vectors.VectorOperations.add(v1, v3);
-
-    _ = Vectors.VectorOperations.add(v1, v1);
+    std.debug.print("V11_: {any}\n", .{v11_.vector});
 }

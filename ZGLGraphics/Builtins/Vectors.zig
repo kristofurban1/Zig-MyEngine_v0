@@ -1,9 +1,13 @@
+//const std = @import("std");
+
 pub fn Vector(comptime T: type, comptime L: comptime_int) type {
     return struct {
         pub const _T = T;
         pub const _L = L;
 
+        pub const Add = VectorOperations.Add(@This());
         vector: @Vector(L, T),
+        add: *const fn (@This(), @This()) @This() = Add,
     };
 }
 
@@ -35,12 +39,11 @@ fn assert_vector_length_match(comptime vec1: anytype, comptime vec2: anytype) vo
 }
 
 pub const VectorOperations = struct {
-    pub fn add(vec1: anytype, vec2: anytype) @TypeOf(vec1) {
-        comptime {
-            assert_vector_type_match(vec1, vec2);
-            assert_vector_length_match(vec1, vec2);
-        }
-
-        return .{};
+    pub fn Add(comptime T: type) (*const fn (T, T) T) {
+        return struct {
+            pub fn add(vec1: T, vec2: T) T {
+                return T{ .vector = vec1.vector + vec2.vector };
+            }
+        }.add;
     }
 };
