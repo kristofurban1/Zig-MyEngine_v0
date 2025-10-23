@@ -11,6 +11,7 @@ const Vectors = @import("zgl").Vectors;
 //     ZGL.Reporter.report(.Info, "Hey there i am looper!", .{});
 // }
 
+
 pub fn main() !void {
     // ZGL.Reporter.set_immidiate_callback(reporter_callback);
     // try ZGL.init(std.heap.page_allocator);
@@ -18,6 +19,7 @@ pub fn main() !void {
     // try ZGL.GlobalState.main_loop_event().connect(test_event);
 
     // try ZGL._test();
+
 
     const Vec3_i32 = Vectors.Vector(i32, 3);
     const Vec2_i32 = Vectors.Vector(i32, 2);
@@ -30,7 +32,7 @@ pub fn main() !void {
     _ = .{ v1, v2, v3 };
 
     const v11 = Vec3_i32.Add(v1, v1);
-    const v11_ = v1.add(v2);
+    const v11_ = v1.add(v1);
     std.debug.print("V11: {any}\n", .{v11.vector});
 
     std.debug.print("V11_: {any}\n", .{v11_.vector});

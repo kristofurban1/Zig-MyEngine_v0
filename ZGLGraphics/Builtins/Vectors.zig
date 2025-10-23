@@ -1,44 +1,35 @@
 //const std = @import("std");
 
+fn vector_type_verify(comptime T: type) void {
+    switch (@typeInfo(T)) {
+        .int => return,
+        .float => return,
+        else => @compileError("Unsupported vector type! Must be Int or Float"),
+    }
+    unreachable;
+}
+
 pub fn Vector(comptime T: type, comptime L: comptime_int) type {
     return struct {
-        pub const _T = T;
-        pub const _L = L;
-
         pub const Add = VectorOperations.Add(@This());
         vector: @Vector(L, T),
-        add: *const fn (@This(), @This()) @This() = Add,
+        pub fn add(self: @This(), other: @This()) @This() {
+            return Add(self, other);
+        }
     };
 }
 
-fn assert_vector(comptime vec: anytype) void {
-    const V = @TypeOf(vec);
-    if (!(@hasDecl(V, "_T") and @hasDecl(V, "_L")))
-        @compileError("Given type is not Vector!");
-
-    const _type: type = vec._T;
-    const _len: comptime_int = vec._L;
-    if (V != Vector(_type, _len))
-        @compileError("Given type is not Vector!");
+pub fn DynVector(comptime T: type) type {
+    return struct {
+        vector: []T,
+    };
 }
 
-fn assert_vector_type_match(comptime vec1: anytype, comptime vec2: anytype) void {
-    assert_vector(vec1);
-    assert_vector(vec2);
+const VectorCompatibilityUtils = struct {
+    pub fn type_converter()
+};
 
-    if (vec1._T != vec2._T)
-        @compileError("Given vector's types do not match!");
-}
-
-fn assert_vector_length_match(comptime vec1: anytype, comptime vec2: anytype) void {
-    assert_vector(vec1);
-    assert_vector(vec2);
-
-    if (vec1._L != vec2._L)
-        @compileError("Given vector's length do not match!");
-}
-
-pub const VectorOperations = struct {
+const VectorOperations = struct {
     pub fn Add(comptime T: type) (*const fn (T, T) T) {
         return struct {
             pub fn add(vec1: T, vec2: T) T {
