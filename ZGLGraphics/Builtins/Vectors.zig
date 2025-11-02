@@ -114,35 +114,35 @@ const VectorCompatibilityUtils = struct {
         @compileError("Not a Vector!");
     }
 
-    // Takes T types of 2 Vectors and returns a compatible type.
-    pub fn type_converter(comptime T1: type, comptime T2: type) type {
-        vector_type_verify(T1);
-        vector_type_verify(T2);
+    // // Takes T types of 2 Vectors and returns a compatible type.
+    // pub fn type_converter(comptime T1: type, comptime T2: type) type {
+    //     vector_type_verify(T1);
+    //     vector_type_verify(T2);
 
-        const T1Info = @typeInfo(T1);
+    //     const T1Info = @typeInfo(T1);
 
-        const T2Info = @typeInfo(T2);
+    //     const T2Info = @typeInfo(T2);
 
-        // Conversion order: Float > Integer > Unsigned
-        // Check floats.
-        if (T1Info.float or T2Info.float) {
-            // Both floats
-            if (T1Info.float and T2Info.float) {
-                return if (T1Info.float.bits >= T2Info.float.bits) T1 else T2;
-            }
-            // Only one float
-            return if (T1Info.float) T1 else T2;
-        }
-        // No floats. Check Ints
-        else if (T1Info.int.signedness == .signed or T2Info.int.signedness == .signed) {
-            // Both ints
-            if (T1Info.float and T2Info.float) {
-                return if (T1Info.int.signedness >= T2Info.int.signedness) T1 else T2;
-            }
-            // Only one int
-            return if (T1Info.int.signedness == .signed) T1 else T2;
-        }
-    }
+    //     // Conversion order: Float > Integer > Unsigned
+    //     // Check floats.
+    //     if (T1Info.float or T2Info.float) {
+    //         // Both floats
+    //         if (T1Info.float and T2Info.float) {
+    //             return if (T1Info.float.bits >= T2Info.float.bits) T1 else T2;
+    //         }
+    //         // Only one float
+    //         return if (T1Info.float) T1 else T2;
+    //     }
+    //     // No floats. Check Ints
+    //     else if (T1Info.int.signedness == .signed or T2Info.int.signedness == .signed) {
+    //         // Both ints
+    //         if (T1Info.float and T2Info.float) {
+    //             return if (T1Info.int.signedness >= T2Info.int.signedness) T1 else T2;
+    //         }
+    //         // Only one int
+    //         return if (T1Info.int.signedness == .signed) T1 else T2;
+    //     }
+    // }
 };
 
 const VectorOperations = struct {
