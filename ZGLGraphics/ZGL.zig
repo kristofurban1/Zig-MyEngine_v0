@@ -15,6 +15,7 @@ pub const Vectors = @import("Builtins/Vectors.zig");
 
 pub const Windows = @import("Rendering/Windows.zig");
 pub const Shaders = @import("Rendering/Shaders.zig");
+pub const VertexData = @import("Rendering/VertexData.zig");
 
 var allocator: ?std.mem.Allocator = null;
 

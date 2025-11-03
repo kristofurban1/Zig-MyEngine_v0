@@ -41,4 +41,5 @@ pub fn main() !void {
     std.debug.print("Result: {}\n", .{std.math.radiansToDegrees(r7)});
 
     const r8 = v1.cross(v2);
+    std.debug.print("Result: {}\n", .{r8});
 }
