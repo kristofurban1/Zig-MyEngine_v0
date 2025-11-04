@@ -35,13 +35,16 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
     };
     if (Length <= 0 or Length > 4) @compileError("ShaderUniform Vector must be 1-4 in Length!");
     return struct {
+        pub const Vector = Vectors.Vector(T, Length);
+
         name: [:0]const u8,
         program: ShaderProgram = undefined,
-        vector: Vectors.Vector(T, Length),
+        vector: Vector,
 
         pub fn init(uniformName: [:0]const u8) @This() {
             return .{
                 .name = uniformName,
+                .vector = Vector.splat(0),
             };
         }
 
@@ -54,9 +57,85 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
 
             switch (uniformType) {
                 .Float => switch (Length) {
-                    1 => _g.glUniform1f(location, self.vector.get(0)),
+                    1 => _g.glUniform1f(
+                        location,
+                        self.vector.get(0),
+                    ),
+                    2 => _g.glUniform2f(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                    ),
+                    3 => _g.glUniform3f(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                    ),
+                    4 => _g.glUniform4f(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                        self.vector.get(3),
+                    ),
+                    else => unreachable,
+                },
+                .Integer => switch (Length) {
+                    1 => _g.glUniform1i(
+                        location,
+                        self.vector.get(0),
+                    ),
+                    2 => _g.glUniform2i(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                    ),
+                    3 => _g.glUniform3i(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                    ),
+                    4 => _g.glUniform4i(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                        self.vector.get(3),
+                    ),
+                    else => unreachable,
+                },
+                .Unsigned => switch (Length) {
+                    1 => _g.glUniform1ui(
+                        location,
+                        self.vector.get(0),
+                    ),
+                    2 => _g.glUniform2ui(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                    ),
+                    3 => _g.glUniform3ui(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                    ),
+                    4 => _g.glUniform4ui(
+                        location,
+                        self.vector.get(0),
+                        self.vector.get(1),
+                        self.vector.get(2),
+                        self.vector.get(3),
+                    ),
+                    else => unreachable,
                 },
             }
+        }
+
+        pub fn setValue(self: *@This(), vector: Vector) void {
+            self.*.vector = vector;
         }
     };
 }
