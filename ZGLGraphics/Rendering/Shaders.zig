@@ -7,6 +7,8 @@ const ObjectChain = ZGL.ObjectChain;
 
 const NamedTypeCode = ZGL.NamedTypeCode;
 
+const ShaderUniforms = @import("ShaderUniforms.zig");
+
 const ShaderVerifyInquryTypes = enum { COMPILE_STATUS, LINK_STATUS };
 
 const ShaderVerifyInqury = NamedTypeCode.CreateNamedTypeCodeStore(ShaderVerifyInquryTypes)
@@ -127,11 +129,12 @@ pub const ShaderProgram = struct {
     }
 };
 
-pub fn ShaderObjectChain(comptime _LENGTH: comptime_int) {
+pub fn ShaderObjectChain(comptime _LENGTH: comptime_int) type {
+    _ = _LENGTH;
     return struct {
-        pub const T = union{ Shader,  }
+        pub const T = union { shader: Shader, uniform: ShaderUniforms.ShaderUniformInterface };
     };
-};
+}
 
 pub fn ShaderProgramCompiler(comptime T: type) type {
     ObjectChain.EnforceObjectChain(T, Shader);

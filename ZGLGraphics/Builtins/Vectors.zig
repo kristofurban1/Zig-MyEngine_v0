@@ -67,11 +67,13 @@ pub fn Vector(comptime T: type, comptime L: comptime_int) type {
     };
 }
 
-pub fn TypedVector(comptime T: type) fn(comptime_int) type {
-    fn _Vector(comptime len: comptime_int) type {
-        return Vector(T, len);
-    }
-    return &_Vector;
+pub fn TypedVector(comptime T: type) *const fn (comptime_int) type {
+    const _s = struct {
+        fn _Vector(comptime len: comptime_int) type {
+            return Vector(T, len);
+        }
+    };
+    return &_s._Vector;
 }
 
 pub const Vector2 = Vector(f32, 2);
