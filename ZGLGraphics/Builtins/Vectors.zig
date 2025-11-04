@@ -39,7 +39,7 @@ pub fn Vector(comptime T: type, comptime L: comptime_int) type {
             const result = self.raw_vector * other.raw_vector;
             return init(result);
         }
-        pub fn scalar_mult(self: Self, scalar: T) Self {
+        pub fn scale(self: Self, scalar: T) Self {
             return self.mult(splat(scalar));
         }
         pub fn dot(self: Self, other: Self) f32 {
@@ -65,6 +65,13 @@ pub fn Vector(comptime T: type, comptime L: comptime_int) type {
             return splat(0);
         }
     };
+}
+
+pub fn TypedVector(comptime T: type) fn(comptime_int) type {
+    fn _Vector(comptime len: comptime_int) type {
+        return Vector(T, len);
+    }
+    return &_Vector;
 }
 
 pub const Vector2 = Vector(f32, 2);

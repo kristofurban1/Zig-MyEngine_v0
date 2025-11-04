@@ -127,6 +127,12 @@ pub const ShaderProgram = struct {
     }
 };
 
+pub fn ShaderObjectChain(comptime _LENGTH: comptime_int) {
+    return struct {
+        pub const T = union{ Shader,  }
+    };
+};
+
 pub fn ShaderProgramCompiler(comptime T: type) type {
     ObjectChain.EnforceObjectChain(T, Shader);
     return struct {
