@@ -8,6 +8,7 @@ const ObjectChain = ZGL.ObjectChain;
 const NamedTypeCode = ZGL.NamedTypeCode;
 
 const ShaderUniforms = @import("ShaderUniforms.zig");
+const ShaderBuilderChain = @import("ShaderBuilderChain.zig");
 
 const ShaderVerifyInquryTypes = enum { COMPILE_STATUS, LINK_STATUS };
 
@@ -82,6 +83,16 @@ pub const ShaderProgram = struct {
     const Builder = struct {
         program: ShaderProgram,
 
+        pub fn init(label: []const u8, allocator: std.mem.Allocator) @This() {
+            var program = ShaderProgram{
+                .label = label,
+                .shader_program = _g.glCreateProgram(),
+                .allocator = allocator,
+            };
+            program.uniforms = std.ArrayList(ShaderUniforms.ShaderUniformInterface).initCapacity(program.allocator, 0);
+            return Builder{ .program = program };
+        }
+
         pub fn attach_shader(self: @This(), shader: Shader) !u32 {
             const shader_id = try create_shader(
                 shader.type,
@@ -108,54 +119,68 @@ pub const ShaderProgram = struct {
             _g.glDeleteShader(shader.id.?);
         }
 
+        pub fn attach_uniform(self: *@This(), uniform: ShaderUniforms.ShaderUniformInterface) void {
+            uniform.program.* = self.program.shader_program;
+            self.program.uniforms.append(self.program.allocator, uniform);
+        }
+
         pub fn finish(self: @This()) ShaderProgram {
             return self.program;
         }
     };
 
+    allocator: std.mem.Allocator,
     label: []const u8,
     shader_program: u32,
+    uniforms: std.ArrayList(ShaderUniforms.ShaderUniformInterface) = undefined,
 
-    pub fn init(label: []const u8) Builder {
-        const shader_program = _g.glCreateProgram();
-        return Builder{ .program = .{
-            .label = label,
-            .shader_program = shader_program,
-        } };
+    pub fn init(label: []const u8, allocator: std.mem.Allocator) Builder {
+        return Builder.init(label, allocator);
     }
 
     pub fn deinit(self: @This()) void {
         _g.glDeleteProgram(self.shader_program);
+        self.uniforms.toOwnedSlice(self.allocator);
     }
 };
 
-pub fn ShaderObjectChain(comptime _LENGTH: comptime_int) type {
-    _ = _LENGTH;
+pub fn ShaderProgramCompiler(comptime __shader_chain: anytype) type {
+    const T = @TypeOf(__shader_chain);
+    const LENGTH = ShaderBuilderChain.EnforceShaderBuilderChain(T);
+    const _shader_chain: ShaderBuilderChain.ShaderBuilderChain(LENGTH) = __shader_chain;
     return struct {
-        pub const T = union { shader: Shader, uniform: ShaderUniforms.ShaderUniformInterface };
-    };
-}
+        pub fn compile_shader(label: []const u8, allocator: std.mem.Allocator) !ShaderProgram {
+            const builder = ShaderProgram.init(label, allocator);
+            var shader_chain = _shader_chain;
 
-pub fn ShaderProgramCompiler(comptime T: type) type {
-    ObjectChain.EnforceObjectChain(T, Shader);
-    return struct {
-        pub fn compile_shader(shader_chain: T, label: []const u8) !ShaderProgram {
-            const builder = ShaderProgram.init(label);
-            var _shader_chain = shader_chain;
-
-            _shader_chain.reset();
-            while (_shader_chain.next_ref()) |shader_ref| {
-                const id = try builder.attach_shader(shader_ref.*);
-                shader_ref.*.id = id;
+            shader_chain.reset();
+            while (shader_chain.next_ref()) |shader_ref| {
+                switch (shader_ref) {
+                    .shader => |shader| {
+                        const id = try builder.attach_shader(shader.*);
+                        shader.*.id = id;
+                    },
+                    .uniform => {}, // Ignore at this step
+                }
             }
 
             try builder.link_program();
 
-            _shader_chain.reset();
-            while (_shader_chain.next_obj()) |shader_obj| {
-                builder.delete_shader(shader_obj);
+            shader_chain.reset();
+            while (shader_chain.next_obj()) |shader_obj| {
+                switch (shader_obj) {
+                    .shader => |shader| builder.delete_shader(shader),
+                    .uniform => {}, // Ignore at this step
+                }
             }
 
+            shader_chain.reset();
+            while (shader_chain.next_obj()) |shader_obj| {
+                switch (shader_obj) {
+                    .shader => {}, // Ignore at this step
+                    .uniform => |uniform| builder.attach_uniform(uniform),
+                }
+            }
             return builder.finish();
         }
     };

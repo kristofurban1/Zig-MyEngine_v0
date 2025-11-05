@@ -15,7 +15,9 @@ pub const Vectors = @import("Builtins/Vectors.zig");
 pub const Matrices = @import("Builtins/Matrices.zig");
 
 pub const Windows = @import("Rendering/Windows.zig");
+pub const ShaderBuilderChain = @import("Rendering/ShaderBuilderChain.zig");
 pub const Shaders = @import("Rendering/Shaders.zig");
+pub const ShaderUniforms = @import("Rendering/ShaderUniforms.zig");
 pub const VertexData = @import("Rendering/VertexData.zig");
 
 var allocator: ?std.mem.Allocator = null;
@@ -126,8 +128,9 @@ pub fn _test() !void {
     try GlobalState.set_context(&window);
 
     const Shader = Shaders.Shader;
+    const IVectorUniform2 = ShaderUniforms.ShaderUniform_Vector(.Integer, 2);
 
-    const shader_chain = ObjectChain.CreateChain(Shader)
+    var shader_chain = ShaderBuilderChain.CreateShaderBuilderChain()
         .chain(Shader{
             .type = .VERTEX,
             .program = @embedFile("vert.glsl"),
@@ -137,7 +140,14 @@ pub fn _test() !void {
         .program = @embedFile("frag.glsl"),
     });
 
-    const prog = try Shaders.ShaderProgramCompiler(@TypeOf(shader_chain)).compile_shader(shader_chain, "Basic");
+    var uniform_resolution = IVectorUniform2.init("Resolution");
+    var uniform_resolution2 = IVectorUniform2.init("Resolution2");
+
+    shader_chain = shader_chain
+        .chain(uniform_resolution.interface())
+        .chain(uniform_resolution2.interface());
+
+    const prog = try Shaders.ShaderProgramCompiler(@TypeOf(shader_chain)).compile_shader("Basic", allocator);
     _ = prog;
 
     while (!globalState.should_close) {

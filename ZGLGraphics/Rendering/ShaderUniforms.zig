@@ -25,6 +25,7 @@ pub const ShaderUniformInterface = struct {
     uniformType: union { vector: ShaderUniformVectorTypes, matrix: ShaderUniformMatrixTypes },
     base: *anyopaque,
     update_fn: *const fn (base: anytype) void,
+    program: *c_uint,
 };
 
 pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comptime Length: comptime_int) type {
@@ -38,7 +39,7 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
         pub const Vector = Vectors.Vector(T, Length);
 
         name: [:0]const u8,
-        program: ShaderProgram = undefined,
+        program: c_uint = undefined,
         vector: Vector,
 
         pub fn interface(self: @This()) ShaderUniformInterface {
@@ -46,6 +47,7 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
                 .uniformType = .{ .vector = uniformType },
                 .base = &self,
                 .update_fn = &update,
+                .program = &self.program,
             };
         }
 
@@ -54,10 +56,6 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
                 .name = uniformName,
                 .vector = Vector.splat(0),
             };
-        }
-
-        pub fn setShader(self: *@This(), shaderProgram: ShaderProgram) void {
-            self.*.program = shaderProgram;
         }
 
         pub fn update(self: @This()) void {

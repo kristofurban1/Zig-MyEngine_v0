@@ -53,7 +53,7 @@ pub fn CreateChain(comptime T: type) ObjChain(T, 0) {
     };
 }
 
-pub fn EnforceObjectChain(comptime chain_type: type, comptime _T: ?type) void {
+pub fn EnforceObjectChain(comptime chain_type: type, comptime _T: ?type) struct{} {
     if (!@hasDecl(chain_type, "__signature__object_chain__")) {
         @compileError("OBJECT_CHAIN :: Given type is not Object Chain!");
     }
