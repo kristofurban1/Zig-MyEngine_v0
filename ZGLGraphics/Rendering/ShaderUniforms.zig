@@ -41,6 +41,14 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
         program: ShaderProgram = undefined,
         vector: Vector,
 
+        pub fn interface(self: @This()) ShaderUniformInterface {
+            return .{
+                .uniformType = .{ .vector = uniformType },
+                .base = &self,
+                .update_fn = &update,
+            };
+        }
+
         pub fn init(uniformName: [:0]const u8) @This() {
             return .{
                 .name = uniformName,
