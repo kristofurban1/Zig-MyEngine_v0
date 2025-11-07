@@ -22,24 +22,26 @@ pub const ShaderUniformMatrixTypes = enum {
 };
 
 pub const ShaderUniformInterface = struct {
-    baseDescription: union(enum) {
-        vector: struct {
-            vectorType: ShaderUniformVectorTypes,
-            length: usize,
-        },
-        matrix: struct {
-            matrixType: ShaderUniformMatrixTypes,
-            width: usize,
-            heigth: usize,
-            columnMajor: bool,
-        },
-    },
+    // baseDescription: union(enum) {
+    //     vector: struct {
+    //         vectorType: ShaderUniformVectorTypes,
+    //         length: usize,
+    //     },
+    //     matrix: struct {
+    //         matrixType: ShaderUniformMatrixTypes,
+    //         width: usize,
+    //         heigth: usize,
+    //         columnMajor: bool,
+    //     },
+    // },
     base: *anyopaque,
-    based: anyopaque,
+    baseType: type,
     update_fn: *const fn (base: anytype) void,
     program: *c_uint,
 
-    pub fn get_base() void {}
+    pub fn get_base(self: @This()) *self.baseType {
+        return self.base;
+    }
 };
 
 pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comptime Length: comptime_int) type {
@@ -58,7 +60,8 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
 
         pub fn interface(self: @This()) ShaderUniformInterface {
             return .{
-                .baseDescription0 = .{ .vector = .{ .uniformType = uniformType, .length = Length } },
+                // .baseDescription0 = .{ .vector = .{ .uniformType = uniformType, .length = Length } },
+                .baseType = @This(),
                 .base = &self,
                 .update_fn = &update,
                 .program = &self.program,
