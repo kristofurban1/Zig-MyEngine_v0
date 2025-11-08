@@ -1,6 +1,6 @@
 vim.notify("LOADED NIX ENV!", vim.log.levels.INFO);
 
-local lspconfig = require('lspconfig')
+local lspconfig = vim.lsp.config;
 local capabilities = require('blink.cmp').get_lsp_capabilities()
 
 lspconfig.zls.setup({ capabilities = capabilities })

@@ -122,30 +122,28 @@ pub fn deinit() void {
     Reporter.deinit();
     _g.glfwTerminate();
 }
+const IVectorUniform2 = ShaderUniforms.ShaderUniform_Vector(.Integer, 2);
+var ResolutionUniform = (c: {
+    var _v = IVectorUniform2.init("Resolution");
+    break :c &_v;
+}).*;
 
 pub fn _test() !void {
     const window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null, null, allocator.?);
     try GlobalState.set_context(&window);
 
     const Shader = Shaders.Shader;
-    const IVectorUniform2 = ShaderUniforms.ShaderUniform_Vector(.Integer, 2);
 
-    var shader_chain = ShaderBuilderChain.CreateShaderBuilderChain()
+    const shader_chain = ShaderBuilderChain.CreateShaderBuilderChain()
         .chain(Shader{
             .type = .VERTEX,
             .program = @embedFile("vert.glsl"),
         })
         .chain(Shader{
-        .type = .FRAGMENT,
-        .program = @embedFile("frag.glsl"),
-    });
-
-    var uniform_resolution = IVectorUniform2.init("Resolution");
-    var uniform_resolution2 = IVectorUniform2.init("Resolution2");
-
-    shader_chain = shader_chain
-        .chain(uniform_resolution.interface())
-        .chain(uniform_resolution2.interface());
+            .type = .FRAGMENT,
+            .program = @embedFile("frag.glsl"),
+        })
+        .chain(ResolutionUniform.interface());
 
     const prog = try Shaders.ShaderProgramCompiler(@TypeOf(shader_chain)).compile_shader("Basic", allocator);
     _ = prog;

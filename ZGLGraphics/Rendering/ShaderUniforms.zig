@@ -22,25 +22,20 @@ pub const ShaderUniformMatrixTypes = enum {
 };
 
 pub const ShaderUniformInterface = struct {
-    // baseDescription: union(enum) {
-    //     vector: struct {
-    //         vectorType: ShaderUniformVectorTypes,
-    //         length: usize,
-    //     },
-    //     matrix: struct {
-    //         matrixType: ShaderUniformMatrixTypes,
-    //         width: usize,
-    //         heigth: usize,
-    //         columnMajor: bool,
-    //     },
-    // },
+    baseDescription: union(enum) {
+        vector: ShaderUniformVectorTypes,
+        matrix: ShaderUniformMatrixTypes,
+    },
     base: *anyopaque,
-    baseType: type,
     update_fn: *const fn (base: anytype) void,
+    get_name_fn: *const fn (base: anytype) [:0]const u8,
     program: *c_uint,
 
-    pub fn get_base(self: @This()) *self.baseType {
-        return self.base;
+    pub fn update(self: @This()) void {
+        self.update_fn(self.base);
+    }
+    pub fn get_name(self: @This()) [:0]const u8 {
+        self.get_name_fn(self.base);
     }
 };
 
@@ -58,21 +53,33 @@ pub fn ShaderUniform_Vector(comptime uniformType: ShaderUniformVectorTypes, comp
         program: c_uint = undefined,
         vector: Vector,
 
-        pub fn interface(self: @This()) ShaderUniformInterface {
+        pub fn interface(self: *@This()) ShaderUniformInterface {
             return .{
-                // .baseDescription0 = .{ .vector = .{ .uniformType = uniformType, .length = Length } },
-                .baseType = @This(),
-                .base = &self,
-                .update_fn = &update,
+                .baseDescription = .{ .vector = uniformType },
+                .base = self,
+                .update_fn = &opaque_update,
+                .get_name_fn = &opaque_get_name,
                 .program = &self.program,
             };
         }
 
-        pub fn create_uniform(uniformName: [:0]const u8) ShaderUniformInterface {
+        pub fn init(uniformName: [:0]const u8) @This() {
             return .{
                 .name = uniformName,
                 .vector = Vector.splat(0),
-            }.interface();
+            };
+        }
+
+        pub fn opaque_get_name(self: anytype) [:0]const u8 {
+            return get_name(self);
+        }
+
+        pub fn get_name(self: @This()) [:0]const u8 {
+            return self.name;
+        }
+
+        pub fn opaque_update(self: anytype) void {
+            update(self);
         }
 
         pub fn update(self: @This()) void {

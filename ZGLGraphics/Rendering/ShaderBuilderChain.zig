@@ -8,7 +8,7 @@ pub fn ShaderBuilderChain(comptime LENGTH: u32) type {
     return struct {
         objectChain: ObjectChain.ObjChain(ShaderUniformUnion, LENGTH),
 
-        pub fn chain(self: @This(), object: anytype) ShaderBuilderChain(ShaderUniformUnion, LENGTH + 1) {
+        pub fn chain(self: @This(), object: anytype) ShaderBuilderChain(LENGTH + 1) {
             if (@TypeOf(object) == Shader) {
                 return .{
                     .objectChain = self.objectChain.chain(ShaderUniformUnion{ .shader = object }),
