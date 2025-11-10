@@ -17,5 +17,5 @@ pub fn main() !void {
 
     try ZGL.GlobalState.main_loop_event().connect(test_event);
 
-    try ZGL._test();
+    try ZGL._test(std.heap.page_allocator);
 }

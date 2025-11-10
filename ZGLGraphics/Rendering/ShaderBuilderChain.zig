@@ -1,19 +1,20 @@
 const Shader = @import("Shaders.zig").Shader;
-const ShaderUniformInterface = @import("ShaderUniforms.zig").ShaderUniformInterface;
+const ShaderUniform = @import("ShaderUniforms.zig").ShaderUniform;
 const ObjectChain = @import("../Utils/ObjectChain.zig");
 
-pub const ShaderUniformUnion = union(enum) { shader: Shader, uniform: ShaderUniformInterface };
+pub const ShaderUniformUnion = union(enum) { shader: Shader, uniform: ShaderUniform };
 
 pub fn ShaderBuilderChain(comptime LENGTH: u32) type {
     return struct {
-        objectChain: ObjectChain.ObjChain(ShaderUniformUnion, LENGTH),
+        pub const ObjectChainType = ObjectChain.ObjChain(ShaderUniformUnion, LENGTH);
+        objectChain: ObjectChainType,
 
         pub fn chain(self: @This(), object: anytype) ShaderBuilderChain(LENGTH + 1) {
             if (@TypeOf(object) == Shader) {
                 return .{
                     .objectChain = self.objectChain.chain(ShaderUniformUnion{ .shader = object }),
                 };
-            } else if (@TypeOf(object) == ShaderUniformInterface) {
+            } else if (@TypeOf(object) == ShaderUniform) {
                 return .{
                     .objectChain = self.objectChain.chain(ShaderUniformUnion{ .uniform = object }),
                 };
@@ -44,16 +45,14 @@ pub fn CreateShaderBuilderChain() ShaderBuilderChain(0) {
 }
 
 pub fn EnforceShaderBuilderChain(comptime chain_type: type) comptime_int {
-    if (!@hasDecl(chain_type, "objectChain")) {
+    if (!@hasDecl(chain_type, "ObjectChainType")) {
         @compileError("ShaderBuilderChain :: Given type is not ShaderBuilderChain Chain!");
     }
-    if (!@hasDecl(chain_type.objectChain, "__signature__object_chain__")) {
+    if (!@hasDecl(chain_type.ObjectChainType, "__signature__object_chain__")) {
         @compileError("OBJECT_CHAIN :: Given type is not Object Chain!");
     }
 
-    const T = chain_type.objectChain.T;
-    if (ShaderUniformUnion) |_type| {
-        if (T != _type) @compileError("ShaderBuilderChain :: Given ObjectChain's type is not the requested type!");
-    }
-    return chain_type.objectChain.LENGTH;
+    const T = chain_type.ObjectChainType.T;
+    if (T != ShaderUniformUnion) @compileError("ShaderBuilderChain :: Given ObjectChain's type is not ShaderUniformUnion!");
+    return chain_type.ObjectChainType.LENGTH;
 }

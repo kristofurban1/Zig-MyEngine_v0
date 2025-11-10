@@ -83,13 +83,13 @@ pub const ShaderProgram = struct {
     const Builder = struct {
         program: ShaderProgram,
 
-        pub fn init(label: []const u8, allocator: std.mem.Allocator) @This() {
+        pub fn init(label: []const u8, allocator: std.mem.Allocator) !@This() {
             var program = ShaderProgram{
                 .label = label,
                 .shader_program = _g.glCreateProgram(),
                 .allocator = allocator,
             };
-            program.uniforms = std.ArrayList(ShaderUniforms.ShaderUniformInterface).initCapacity(program.allocator, 0);
+            program.uniforms = try std.ArrayList(ShaderUniforms.ShaderUniform).initCapacity(program.allocator, 0);
             return Builder{ .program = program };
         }
 
@@ -119,9 +119,10 @@ pub const ShaderProgram = struct {
             _g.glDeleteShader(shader.id.?);
         }
 
-        pub fn attach_uniform(self: *@This(), uniform: ShaderUniforms.ShaderUniformInterface) void {
-            uniform.program.* = self.program.shader_program;
-            self.program.uniforms.append(self.program.allocator, uniform);
+        pub fn attach_uniform(self: @This(), _uniform: ShaderUniforms.ShaderUniform) !void {
+            var uniform = _uniform;
+            try uniform.finalize(self.program.shader_program, self.program.allocator);
+            try self.program.uniforms.append(self.program.allocator, uniform);
         }
 
         pub fn finish(self: @This()) ShaderProgram {
@@ -132,10 +133,10 @@ pub const ShaderProgram = struct {
     allocator: std.mem.Allocator,
     label: []const u8,
     shader_program: u32,
-    uniforms: std.ArrayList(ShaderUniforms.ShaderUniformInterface) = undefined,
+    uniforms: std.ArrayList(ShaderUniforms.ShaderUniform) = undefined,
 
-    pub fn init(label: []const u8, allocator: std.mem.Allocator) Builder {
-        return Builder.init(label, allocator);
+    pub fn init(label: []const u8, allocator: std.mem.Allocator) !Builder {
+        return try Builder.init(label, allocator);
     }
 
     pub fn deinit(self: @This()) void {
@@ -150,15 +151,15 @@ pub fn ShaderProgramCompiler(comptime __shader_chain: anytype) type {
     const _shader_chain: ShaderBuilderChain.ShaderBuilderChain(LENGTH) = __shader_chain;
     return struct {
         pub fn compile_shader(label: []const u8, allocator: std.mem.Allocator) !ShaderProgram {
-            const builder = ShaderProgram.init(label, allocator);
+            const builder = try ShaderProgram.init(label, allocator);
             var shader_chain = _shader_chain;
 
             shader_chain.reset();
             while (shader_chain.next_ref()) |shader_ref| {
-                switch (shader_ref) {
-                    .shader => |shader| {
-                        const id = try builder.attach_shader(shader.*);
-                        shader.*.id = id;
+                switch (shader_ref.*) {
+                    .shader => {
+                        const id = try builder.attach_shader(shader_ref.*.shader);
+                        shader_ref.*.shader.id = id;
                     },
                     .uniform => {}, // Ignore at this step
                 }
@@ -178,7 +179,7 @@ pub fn ShaderProgramCompiler(comptime __shader_chain: anytype) type {
             while (shader_chain.next_obj()) |shader_obj| {
                 switch (shader_obj) {
                     .shader => {}, // Ignore at this step
-                    .uniform => |uniform| builder.attach_uniform(uniform),
+                    .uniform => |uniform| (try builder.attach_uniform(uniform)),
                 }
             }
             return builder.finish();

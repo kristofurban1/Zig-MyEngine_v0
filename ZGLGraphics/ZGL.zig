@@ -122,31 +122,33 @@ pub fn deinit() void {
     Reporter.deinit();
     _g.glfwTerminate();
 }
-const IVectorUniform2 = ShaderUniforms.ShaderUniform_Vector(.Integer, 2);
-var ResolutionUniform = (c: {
-    var _v = IVectorUniform2.init("Resolution");
-    break :c &_v;
-}).*;
 
-pub fn _test() !void {
+pub fn _test(_allocator: std.mem.Allocator) !void {
     const window = try Windows.Window.create(640, 480, "OpenGL Triangle", null, null, null, allocator.?);
     try GlobalState.set_context(&window);
 
     const Shader = Shaders.Shader;
 
-    const shader_chain = ShaderBuilderChain.CreateShaderBuilderChain()
-        .chain(Shader{
-            .type = .VERTEX,
-            .program = @embedFile("vert.glsl"),
-        })
-        .chain(Shader{
-            .type = .FRAGMENT,
-            .program = @embedFile("frag.glsl"),
-        })
-        .chain(ResolutionUniform.interface());
+    const Uniform_Vector2I = ShaderUniforms.ShaderUniformType(.{ .vector = .{ .vectorType = .Integer, .length = 2 } });
 
-    const prog = try Shaders.ShaderProgramCompiler(@TypeOf(shader_chain)).compile_shader("Basic", allocator);
+    const shader_chain = comptime c: {
+        const shader_chain = ShaderBuilderChain.CreateShaderBuilderChain()
+            .chain(Shader{
+                .type = .VERTEX,
+                .program = @embedFile("vert.glsl"),
+            })
+            .chain(Shader{
+                .type = .FRAGMENT,
+                .program = @embedFile("frag.glsl"),
+            })
+            .chain(Uniform_Vector2I.create("Resolution"));
+        break :c shader_chain;
+    };
+
+    const prog = try Shaders.ShaderProgramCompiler(shader_chain).compile_shader("Basic", _allocator);
     _ = prog;
+
+    if (true) return;
 
     while (!globalState.should_close) {
         GlobalState.main_loop();
